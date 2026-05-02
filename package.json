@@ -1,0 +1,23 @@
+{
+  "name": "voice-first",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/cli.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/cli.js",
+    "list-audio-devices": "ffmpeg -f avfoundation -list_devices true -i \"\" || true"
+  },
+  "dependencies": {
+    "@elevenlabs/elevenlabs-js": "^2.7.0",
+    "@mariozechner/pi-agent-core": "^0.67.2",
+    "@mariozechner/pi-ai": "^0.67.2",
+    "dotenv": "^16.6.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.8.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}
