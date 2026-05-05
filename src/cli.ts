@@ -1,9 +1,11 @@
 import { loadConfig } from "./config.js";
-import { VoiceCoachApp } from "./runtime/voiceCoachApp.js";
+import { createProductionVoiceCoachApp } from "./runtime/createProductionApp.js";
+import { runPreflight } from "./runtime/preflight.js";
 
 async function main(): Promise<void> {
   const config = loadConfig();
-  const app = new VoiceCoachApp(config);
+  await runPreflight(config);
+  const app = createProductionVoiceCoachApp(config);
   await app.run();
 }
 

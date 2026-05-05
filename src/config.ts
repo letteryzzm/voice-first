@@ -1,4 +1,3 @@
-import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import dotenv from "dotenv";
 
@@ -19,6 +18,7 @@ export interface AppConfig {
   projectRoot: string;
   audioInputDevice: string;
   audioPlayer: string;
+  keepTempAudio: boolean;
 }
 
 function requireEnv(name: string): string {
@@ -42,10 +42,6 @@ export function loadConfig(): AppConfig {
   const notesRoot = resolve(process.env.NOTES_ROOT || "/Users/lettery/Documents/zzm/note/English");
   const projectRoot = resolve(process.env.PROJECT_ROOT || process.cwd());
 
-  if (!existsSync(notesRoot)) {
-    throw new Error(`英语笔记目录不存在：${notesRoot}`);
-  }
-
   return {
     crsApiKey: requireEnv("CRS_OAI_KEY"),
     openaiBaseUrl: (process.env.OPENAI_BASE_URL || "https://api.gptclubapi.xyz/openai").trim(),
@@ -61,5 +57,6 @@ export function loadConfig(): AppConfig {
     projectRoot,
     audioInputDevice: (process.env.AUDIO_INPUT_DEVICE || ":0").trim(),
     audioPlayer: (process.env.AUDIO_PLAYER || "afplay").trim(),
+    keepTempAudio: (process.env.KEEP_TEMP_AUDIO || "false").trim().toLowerCase() === "true",
   };
 }

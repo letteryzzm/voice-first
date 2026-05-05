@@ -7,7 +7,13 @@
     "dev": "tsx src/cli.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/cli.js",
-    "list-audio-devices": "ffmpeg -f avfoundation -list_devices true -i \"\" || true"
+    "list-audio-devices": "ffmpeg -f avfoundation -list_devices true -i \"\" || true",
+    "test": "node --import tsx --test \"test/**/*.test.ts\"",
+    "typecheck": "tsc -p tsconfig.json",
+    "desktop:engine": "tsx src/desktop/engine.ts",
+    "desktop:engine:built": "node dist/desktop/engine.js",
+    "desktop:build": "cargo build --manifest-path desktop/Cargo.toml",
+    "desktop:run": "cargo run --manifest-path desktop/Cargo.toml"
   },
   "dependencies": {
     "@elevenlabs/elevenlabs-js": "^2.7.0",

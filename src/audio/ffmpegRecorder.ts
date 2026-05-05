@@ -12,7 +12,7 @@ export class FfmpegRecorder {
 
   constructor(private readonly config: AppConfig) {}
 
-  start(): void {
+  async start(): Promise<void> {
     if (this.process) {
       throw new Error("录音已经开始");
     }
@@ -42,20 +42,42 @@ export class FfmpegRecorder {
     proc.stderr.on("data", (chunk) => {
       this.stderr += chunk.toString();
     });
+
+    await new Promise<void>((resolve, reject) => {
+      let settled = false;
+      const settle = (callback: () => void): void => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        proc.off("error", onError);
+        proc.off("close", onClose);
+        callback();
+      };
+      const onError = (error: Error): void => {
+        this.process = undefined;
+        this.outputPath = undefined;
+        settle(() => reject(error));
+      };
+      const onClose = (code: number | null): void => {
+        const message = this.stderr || `ffmpeg 退出码 ${code ?? 0}`;
+        this.process = undefined;
+        this.outputPath = undefined;
+        settle(() => reject(new Error(`录音启动失败：${message}`)));
+      };
+      const timer = setTimeout(() => settle(resolve), 300);
+      proc.once("error", onError);
+      proc.once("close", onClose);
+    });
   }
 
-  async stop(): Promise<string> {
+  async stop(timeoutMs = 5000): Promise<string> {
     const proc = this.process;
     const outputPath = this.outputPath;
     if (!proc || !outputPath) {
       throw new Error("录音尚未开始");
     }
 
-    await new Promise<void>((resolve, reject) => {
-      proc.once("error", reject);
-      proc.once("close", () => resolve());
-      proc.kill("SIGINT");
-    });
+    await this.stopProcess(proc, "SIGINT", timeoutMs);
 
     this.process = undefined;
     this.outputPath = undefined;
@@ -70,5 +92,42 @@ export class FfmpegRecorder {
     }
 
     return outputPath;
+  }
+
+  async cleanup(): Promise<void> {
+    const proc = this.process;
+    if (!proc) return;
+    await this.stopProcess(proc, "SIGTERM", 2000).catch(() => {
+      proc.kill("SIGKILL");
+    });
+    this.process = undefined;
+    this.outputPath = undefined;
+  }
+
+  private async stopProcess(
+    proc: ChildProcessByStdio<null, Readable, Readable>,
+    signal: NodeJS.Signals,
+    timeoutMs: number,
+  ): Promise<void> {
+    await new Promise<void>((resolve, reject) => {
+      let settled = false;
+      const settle = (callback: () => void): void => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        proc.off("error", onError);
+        proc.off("close", onClose);
+        callback();
+      };
+      const onError = (error: Error): void => settle(() => reject(error));
+      const onClose = (): void => settle(resolve);
+      const timer = setTimeout(() => {
+        proc.kill("SIGKILL");
+        settle(() => reject(new Error(`停止录音超时（>${timeoutMs}ms）`)));
+      }, timeoutMs);
+      proc.once("error", onError);
+      proc.once("close", onClose);
+      proc.kill(signal);
+    });
   }
 }

@@ -38,8 +38,21 @@ export class PiEnglishCoach {
     });
   }
 
-  async runTurn(userText: string): Promise<string> {
-    await this.agent.prompt(userText);
+  async runTurn(userText: string, signal?: AbortSignal): Promise<string> {
+    if (signal?.aborted) throw new Error("Agent 推理已取消");
+
+    const abortHandler = (): void => {
+      this.agent.abort();
+    };
+    signal?.addEventListener("abort", abortHandler, { once: true });
+
+    try {
+      await this.agent.prompt(userText);
+    } finally {
+      signal?.removeEventListener("abort", abortHandler);
+    }
+
+    if (signal?.aborted) throw new Error("Agent 推理已取消");
     const lastAssistant = [...this.agent.state.messages].reverse().find((message) => message.role === "assistant");
     if (!lastAssistant) {
       throw new Error("未找到 Agent 最终回复");

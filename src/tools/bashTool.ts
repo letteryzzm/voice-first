@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { spawn } from "node:child_process";
 import { Type } from "@mariozechner/pi-ai";
 import type { AgentTool } from "@mariozechner/pi-agent-core";
@@ -36,14 +37,15 @@ export function createBashTool(config: AppConfig): AgentTool<typeof bashParamete
   return {
     name: "bash",
     label: "bash",
-    description: "执行与英语笔记或当前项目直接相关的 bash 命令。禁止破坏性命令。",
+    description: "执行通用 bash 命令。NOTES_ROOT 和 PROJECT_ROOT 仅作为参考环境变量，不限制访问路径。",
     parameters: bashParameters,
     execute: async (_toolCallId, params, signal) => {
       validateCommand(params.command);
 
       const timeoutMs = Math.max(1, params.timeoutSeconds ?? 60) * 1000;
+      const cwd = existsSync(config.projectRoot) ? config.projectRoot : process.cwd();
       const child = spawn("bash", ["-lc", params.command], {
-        cwd: config.projectRoot,
+        cwd,
         signal,
         env: {
           ...process.env,
@@ -90,7 +92,7 @@ export function createBashTool(config: AppConfig): AgentTool<typeof bashParamete
         content: [{ type: "text", text: output }],
         details: {
           command: params.command,
-          cwd: config.projectRoot,
+          cwd,
           notesRoot: config.notesRoot,
         },
       };
